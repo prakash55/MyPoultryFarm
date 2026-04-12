@@ -26,7 +26,7 @@ struct ShedDashboardView: View {
         ) {
             sectionHeader("Running Batches")
 
-            let batches = viewModel.batches.filter { $0.shedId == shed.id && $0.status == "running" }
+            let batches = viewModel.batches.filter { $0.shedId == shed.id && $0.isRunning }
             if batches.isEmpty {
                 PlaceholderCard(icon: "arrow.triangle.2.circlepath", title: "No running batches", subtitle: "Start a new batch to see details here.")
             } else {
@@ -71,7 +71,7 @@ struct ShedDashboardView: View {
         .padding()
         .background(
             RoundedRectangle(cornerRadius: 14)
-                .fill(.thinMaterial)
+                .fill(LinearGradient(colors: [Color(.systemBackground), Color.green.opacity(0.06)], startPoint: .topLeading, endPoint: .bottomTrailing))
                 .overlay(
                     RoundedRectangle(cornerRadius: 14)
                         .stroke(Color.green.opacity(0.14), lineWidth: 1)

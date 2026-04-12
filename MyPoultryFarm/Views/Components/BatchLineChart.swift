@@ -15,6 +15,25 @@ struct BatchLineChart: View {
     let series: [ScopeData.BatchSeries]
     let yLabel: String
     let xLabel: String
+    let xDomain: ClosedRange<Int>?
+
+    init(
+        title: String,
+        icon: String,
+        color: Color,
+        series: [ScopeData.BatchSeries],
+        yLabel: String,
+        xLabel: String,
+        xDomain: ClosedRange<Int>? = nil
+    ) {
+        self.title = title
+        self.icon = icon
+        self.color = color
+        self.series = series
+        self.yLabel = yLabel
+        self.xLabel = xLabel
+        self.xDomain = xDomain
+    }
 
     private let palette: [Color] = [.blue, .green, .orange, .red, .purple, .cyan, .pink, .yellow, .indigo, .mint]
 
@@ -53,6 +72,9 @@ struct BatchLineChart: View {
                 }
                 .chartXAxisLabel(xLabel)
                 .chartYAxisLabel(yLabel)
+                .ifLet(xDomain) { chart, domain in
+                    chart.chartXScale(domain: domain)
+                }
                 .chartLegend(.visible)
                 .frame(height: 220)
 
@@ -61,8 +83,11 @@ struct BatchLineChart: View {
             }
         }
         .padding()
-        .background(Color(.systemBackground))
+        .background(
+            LinearGradient(colors: [Color(.systemBackground), Color.blue.opacity(0.05)], startPoint: .topLeading, endPoint: .bottomTrailing)
+        )
         .cornerRadius(14)
+        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.blue.opacity(0.12), lineWidth: 1))
         .shadow(color: .black.opacity(0.06), radius: 5, y: 2)
     }
 
@@ -82,41 +107,13 @@ struct BatchLineChart: View {
     }
 }
 
-/// Simple flow layout for legend items
-struct FlowLayout: Layout {
-    var spacing: CGFloat = 8
-
-    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
-        let result = arrange(proposal: proposal, subviews: subviews)
-        return result.size
-    }
-
-    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
-        let result = arrange(proposal: proposal, subviews: subviews)
-        for (index, position) in result.positions.enumerated() {
-            subviews[index].place(at: CGPoint(x: bounds.minX + position.x, y: bounds.minY + position.y), proposal: .unspecified)
+private extension View {
+    @ViewBuilder
+    func ifLet<T, Content: View>(_ value: T?, transform: (Self, T) -> Content) -> some View {
+        if let value {
+            transform(self, value)
+        } else {
+            self
         }
-    }
-
-    private func arrange(proposal: ProposedViewSize, subviews: Subviews) -> (positions: [CGPoint], size: CGSize) {
-        let maxWidth = proposal.width ?? .infinity
-        var positions: [CGPoint] = []
-        var x: CGFloat = 0
-        var y: CGFloat = 0
-        var rowHeight: CGFloat = 0
-
-        for subview in subviews {
-            let size = subview.sizeThatFits(.unspecified)
-            if x + size.width > maxWidth && x > 0 {
-                x = 0
-                y += rowHeight + spacing
-                rowHeight = 0
-            }
-            positions.append(CGPoint(x: x, y: y))
-            rowHeight = max(rowHeight, size.height)
-            x += size.width + spacing
-        }
-
-        return (positions, CGSize(width: maxWidth, height: y + rowHeight))
     }
 }

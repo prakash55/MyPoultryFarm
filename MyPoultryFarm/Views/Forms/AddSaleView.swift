@@ -24,7 +24,7 @@ struct AddSaleView: View {
 
     private var runningBatches: [BatchRecord] {
         guard let shedId = selectedShedId else { return [] }
-        return viewModel.batches.filter { $0.shedId == shedId && $0.status == "running" }
+        return viewModel.batches.filter { $0.shedId == shedId && $0.isRunning }
     }
 
     private var birdsLeftForSelectedBatch: Int? {
@@ -201,57 +201,6 @@ struct AddSaleView: View {
                 buyerId: selectedBuyerId,
                 notes: notes.isEmpty ? nil : notes
             )
-            dismiss()
-        }
-    }
-}
-
-// MARK: - Add Buyer Sheet
-
-struct AddBuyerView: View {
-    @ObservedObject var viewModel: SalesViewModel
-    @Environment(\.dismiss) private var dismiss
-
-    let onSave: (BuyerRecord) -> Void
-
-    @State private var agencyName = ""
-    @State private var handlerName = ""
-    @State private var phone = ""
-    @State private var isSaving = false
-
-    var body: some View {
-        NavigationStack {
-            Form {
-                Section("Agency Details") {
-                    TextField("Agency Name", text: $agencyName)
-                    TextField("Handler Name", text: $handlerName)
-                    TextField("Phone Number", text: $phone)
-                        .keyboardType(.phonePad)
-                }
-            }
-            .navigationTitle("New Buyer")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") { save() }
-                        .disabled(agencyName.isEmpty || isSaving)
-                }
-            }
-        }
-    }
-
-    private func save() {
-        isSaving = true
-        Task {
-            let saved = try await viewModel.addBuyer(
-                agencyName: agencyName,
-                handlerName: handlerName.isEmpty ? nil : handlerName,
-                phone: phone.isEmpty ? nil : phone
-            )
-            onSave(saved)
             dismiss()
         }
     }

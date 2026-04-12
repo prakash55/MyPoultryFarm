@@ -37,8 +37,8 @@ struct OverviewDashboardView: View {
     private func farmOverviewCard(farm: FarmRecord) -> some View {
         let sheds = viewModel.sheds(for: farm)
         let shedIds = Set(sheds.compactMap { $0.id })
-        let batchCount = viewModel.batches.filter { shedIds.contains($0.shedId) && $0.status == "running" }.count
-        let birdCount = viewModel.batches.filter { shedIds.contains($0.shedId) && $0.status == "running" }.reduce(0) { $0 + $1.computedTotalBirds }
+        let batchCount = viewModel.batches.filter { shedIds.contains($0.shedId) && $0.isRunning }.count
+        let birdCount = viewModel.batches.filter { shedIds.contains($0.shedId) && $0.isRunning }.reduce(0) { $0 + $1.computedTotalBirds }
 
         return VStack(alignment: .leading, spacing: 10) {
             HStack {
@@ -87,7 +87,7 @@ struct OverviewDashboardView: View {
         .padding()
         .background(
             RoundedRectangle(cornerRadius: 16)
-                .fill(.thinMaterial)
+                .fill(LinearGradient(colors: [Color(.systemBackground), Color.green.opacity(0.06)], startPoint: .topLeading, endPoint: .bottomTrailing))
                 .overlay(
                     RoundedRectangle(cornerRadius: 16)
                         .stroke(Color.green.opacity(0.14), lineWidth: 1)

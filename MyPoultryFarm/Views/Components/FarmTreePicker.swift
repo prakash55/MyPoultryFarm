@@ -100,7 +100,7 @@ struct FarmTreePicker: View {
     // MARK: - Shed Row
 
     private func shedRow(shed: ShedRecord, farm: FarmRecord) -> some View {
-        let batches = viewModel.batches.filter { $0.shedId == shed.id! && $0.status == "running" }
+        let batches = viewModel.batches.filter { $0.shedId == shed.id! && $0.isRunning }
         let runningCount = batches.count
         let isSelected = selection == .shed(shed)
 
@@ -144,7 +144,7 @@ struct FarmTreePicker: View {
     // MARK: - Batch Row
 
     private func batchRow(batch: BatchRecord) -> some View {
-        let isRunning = batch.status == "running"
+        let isRunning = batch.isRunning
         let sold = viewModel.sales.filter { $0.batchId == batch.id }.reduce(0) { $0 + $1.birdCount }
         let dead = viewModel.dailyLogs.filter { $0.batchId == batch.id }.reduce(0) { $0 + $1.mortality }
         let left = max(0, batch.computedTotalBirds - sold - dead)

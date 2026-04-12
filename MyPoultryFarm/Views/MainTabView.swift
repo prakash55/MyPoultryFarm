@@ -14,6 +14,7 @@ struct MainTabView: View {
     @AppStorage("selectedScope") private var savedSelectionKey: String = "overview"
     @State private var selection: FarmSelection = .overview
     @State private var showMyFarms = false
+    @State private var showScopeDrawer = false
     @StateObject private var router = AppRouter()
     @State private var didApplyInitialSelection = false
 
@@ -21,27 +22,82 @@ struct MainTabView: View {
 
     var body: some View {
         NavigationStack(path: $router.path) {
-            Group {
-                switch selection {
-                case .overview:
-                    OverviewTabView(viewModel: viewModel, selection: $selection, router: router)
-                case .farm(let farm):
-                    FarmTabView(viewModel: viewModel, selection: $selection, farm: farm, router: router)
-                case .shed(let shed):
-                    ShedTabView(viewModel: viewModel, selection: $selection, shed: shed, router: router)
-                case .batch:
-                    EmptyView()
+            ZStack(alignment: .leading) {
+                Group {
+                    switch selection {
+                    case .overview:
+                        OverviewTabView(viewModel: viewModel, selection: $selection, router: router)
+                    case .farm(let farm):
+                        FarmTabView(viewModel: viewModel, selection: $selection, farm: farm, router: router)
+                    case .shed(let shed):
+                        ShedTabView(viewModel: viewModel, selection: $selection, shed: shed, router: router)
+                    case .batch:
+                        EmptyView()
+                    }
+                }
+
+                if showScopeDrawer {
+                    ScopeSelectionDrawer(
+                        viewModel: viewModel,
+                        currentSelection: selection,
+                        onClose: { withAnimation(.easeInOut(duration: 0.2)) { showScopeDrawer = false } },
+                        onSelectOverview: {
+                            router.popToRoot()
+                            selection = .overview
+                            showScopeDrawer = false
+                        },
+                        onSelectFarm: { farm in
+                            router.popToRoot()
+                            selection = .farm(farm)
+                            showScopeDrawer = false
+                        },
+                        onSelectShed: { shed in
+                            router.popToRoot()
+                            selection = .shed(shed)
+                            showScopeDrawer = false
+                        },
+                        onSelectBatch: { shed, batch in
+                            router.popToRoot()
+                            selection = .shed(shed)
+                            router.push(.batchDetail(batch))
+                            showScopeDrawer = false
+                        }
+                    )
                 }
             }
             .navigationDestination(for: Route.self) { route in
                 switch route {
                 case .batchDetail(let batch):
-                    BatchDetailView(dataStore: viewModel, batch: batch)
+                    BatchDetailView(dataStore: viewModel, batch: batch, authViewModel: authViewModel)
                 }
             }
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    farmPicker
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            showScopeDrawer = true
+                        }
+                    } label: {
+                        Image(systemName: "line.3.horizontal")
+                            .font(.title3.weight(.semibold))
+                            .foregroundStyle(.primary)
+                    }
+                }
+                ToolbarItem(placement: .principal) {
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            showScopeDrawer = true
+                        }
+                    } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: selection.scopeIcon)
+                                .font(.caption.weight(.semibold))
+                            Text(selection.title)
+                                .font(.subheadline.weight(.semibold))
+                                .lineLimit(1)
+                        }
+                        .foregroundStyle(.primary)
+                    }
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     profileButton
@@ -82,78 +138,6 @@ struct MainTabView: View {
             router.push(.batchDetail(batch))
         default:
             selection = initialSelection
-        }
-    }
-
-    // MARK: - Farm Picker (left side)
-
-    private var farmPicker: some View {
-        Menu {
-            Button {
-                selection = .overview
-            } label: {
-                Label("Overview", systemImage: "square.grid.2x2")
-            }
-
-            Divider()
-
-            ForEach(viewModel.farms) { farm in
-                Menu {
-                    Button {
-                        selection = .farm(farm)
-                    } label: {
-                        Label("All \(farm.farmName)", systemImage: "house.fill")
-                    }
-
-                    Divider()
-
-                    ForEach(viewModel.sheds(for: farm)) { shed in
-                        let batches = viewModel.batches.filter { $0.shedId == shed.id && $0.status == "running" }
-
-                        if batches.isEmpty {
-                            Button {
-                                selection = .shed(shed)
-                            } label: {
-                                Label(shed.shedName, systemImage: "building.2.fill")
-                            }
-                        } else {
-                            Menu {
-                                Button {
-                                    selection = .shed(shed)
-                                } label: {
-                                    Label("All \(shed.shedName)", systemImage: "building.2.fill")
-                                }
-
-                                Divider()
-
-                                ForEach(batches.sorted(by: { $0.batchNumber > $1.batchNumber })) { batch in
-                                    Button {
-                                        router.popToRoot()
-                                        selection = .shed(shed)
-                                        router.push(.batchDetail(batch))
-                                    } label: {
-                                        Label(batch.displayTitle, systemImage: "arrow.triangle.2.circlepath")
-                                    }
-                                }
-                            } label: {
-                                Label(shed.shedName, systemImage: "building.2.fill")
-                            }
-                        }
-                    }
-                } label: {
-                    Label(farm.farmName, systemImage: "house.fill")
-                }
-            }
-        } label: {
-            HStack(spacing: 6) {
-                Image(systemName: selection.scopeIcon)
-                    .font(.subheadline)
-                Text(selection.title)
-                    .font(.headline)
-                Image(systemName: "chevron.up.chevron.down")
-                    .font(.caption2.weight(.semibold))
-            }
-            .foregroundStyle(.primary)
         }
     }
 

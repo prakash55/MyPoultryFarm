@@ -102,7 +102,7 @@ struct FarmTreeDropdown: View {
     // MARK: - Shed Row
 
     private func shedRow(shed: ShedRecord) -> some View {
-        let batches = viewModel.batches.filter { $0.shedId == shed.id! && $0.status == "running" }
+        let batches = viewModel.batches.filter { $0.shedId == shed.id! && $0.isRunning }
         let runningCount = batches.count
         let isSelected = selection == .shed(shed)
 

@@ -18,7 +18,7 @@ struct AddInventoryItemView: View {
 
     private var runningBatches: [BatchRecord] {
         guard let shedId = selectedShedId else { return [] }
-        return viewModel.batches.filter { $0.shedId == shedId && $0.status == "running" }
+        return viewModel.batches.filter { $0.shedId == shedId && $0.isRunning }
     }
 
     // Feed fields

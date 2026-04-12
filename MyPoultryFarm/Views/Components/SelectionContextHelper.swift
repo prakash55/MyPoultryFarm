@@ -43,7 +43,7 @@ struct ScopeBanner: View {
         .padding(.vertical, 10)
         .background(
             RoundedRectangle(cornerRadius: 14)
-                .fill(.thinMaterial)
+                .fill(LinearGradient(colors: [Color(.systemBackground), Color.green.opacity(0.06)], startPoint: .topLeading, endPoint: .bottomTrailing))
                 .overlay(
                     RoundedRectangle(cornerRadius: 14)
                         .stroke(Color.green.opacity(0.2), lineWidth: 1)
@@ -52,93 +52,166 @@ struct ScopeBanner: View {
     }
 }
 
-/// Reusable summary tile used across all tabs.
-struct SummaryTile: View {
-    let title: String
-    let value: String
+struct ScopeSelectorButton: View {
     let icon: String
-    let color: Color
-
-    @ViewBuilder
-    private var tileIcon: some View {
-        if icon == "chicken_icon" {
-            Image(icon)
-                .renderingMode(Image.TemplateRenderingMode.template)
-                .resizable()
-                .scaledToFit()
-                .frame(width: 16, height: 16)
-                .foregroundStyle(color)
-        } else {
-            Image(systemName: icon)
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(color)
-        }
-    }
+    let title: String
+    let action: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                tileIcon
-                    .frame(width: 28, height: 28)
-                    .background(color.opacity(0.16), in: RoundedRectangle(cornerRadius: 8))
-                Spacer()
+        Button(action: action) {
+            HStack(spacing: 8) {
+                Image(systemName: "line.3.horizontal")
+                    .font(.subheadline.weight(.semibold))
+                Image(systemName: icon)
+                    .font(.caption.weight(.semibold))
+                Text(title)
+                    .font(.subheadline.weight(.semibold))
+                    .lineLimit(1)
             }
-
-            Text(value)
-                .font(.title3.weight(.bold))
-                .lineLimit(1)
-                .minimumScaleFactor(0.75)
-
-            Text(title)
-                .font(.caption2.weight(.semibold))
-                .foregroundStyle(.secondary)
-                .lineLimit(1)
-                .minimumScaleFactor(0.8)
+            .foregroundStyle(.primary)
         }
-        .frame(maxWidth: .infinity)
-        .padding(.horizontal, 12)
-        .padding(.vertical, 12)
-        .background(
-            RoundedRectangle(cornerRadius: 14)
-                .fill(.ultraThinMaterial)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 14)
-                        .stroke(color.opacity(0.16), lineWidth: 1)
-                )
-        )
     }
 }
 
-/// Reusable placeholder for empty/coming-soon states.
-struct PlaceholderCard: View {
-    let icon: String
-    let title: String
-    let subtitle: String
+struct ScopeSelectionDrawer: View {
+    let viewModel: MyFarmsViewModel
+    let currentSelection: FarmSelection
+    let onClose: () -> Void
+    let onSelectOverview: () -> Void
+    let onSelectFarm: (FarmRecord) -> Void
+    let onSelectShed: (ShedRecord) -> Void
+    let onSelectBatch: (ShedRecord, BatchRecord) -> Void
 
     var body: some View {
-        VStack(spacing: 12) {
-            Image(systemName: icon)
-                .font(.system(size: 34, weight: .semibold))
-                .foregroundStyle(.green)
-                .frame(width: 64, height: 64)
-                .background(Color.green.opacity(0.14), in: RoundedRectangle(cornerRadius: 18))
-            Text(title)
-                .font(.headline.weight(.semibold))
-            Text(subtitle)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
+        ZStack(alignment: .leading) {
+            Color.black.opacity(0.18)
+                .ignoresSafeArea()
+                .onTapGesture(perform: onClose)
+            drawerPanel
         }
-        .frame(maxWidth: .infinity)
-        .padding(.horizontal, 18)
-        .padding(.vertical, 30)
-        .background(
-            RoundedRectangle(cornerRadius: 18)
-                .fill(.thinMaterial)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 18)
-                        .stroke(Color.green.opacity(0.16), lineWidth: 1)
+        .transition(.move(edge: .leading).combined(with: .opacity))
+    }
+
+    private var drawerPanel: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 14) {
+                drawerHeader
+                scopeButton(
+                    title: "Overview",
+                    subtitle: "All farms",
+                    icon: "square.grid.2x2",
+                    isSelected: isSelected(.overview),
+                    action: onSelectOverview
                 )
-        )
+                farmList
+            }
+            .padding(18)
+        }
+        .frame(maxHeight: .infinity)
+        .background(Color(.systemBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .shadow(color: .black.opacity(0.12), radius: 18, y: 8)
+        .padding(.leading, 12)
+        .padding(.vertical, 12)
+    }
+
+    private var drawerHeader: some View {
+        HStack {
+            Text("Select Scope")
+                .font(.headline.weight(.semibold))
+            Spacer()
+            Button(action: onClose) {
+                Image(systemName: "xmark")
+                    .font(.subheadline.weight(.bold))
+                    .foregroundStyle(.secondary)
+                    .frame(width: 28, height: 28)
+                    .background(Color(.secondarySystemBackground), in: Circle())
+            }
+        }
+    }
+
+    private var farmList: some View {
+        ForEach(viewModel.farms) { farm in
+            VStack(alignment: .leading, spacing: 8) {
+                scopeButton(
+                    title: farm.farmName,
+                    subtitle: "Farm overview",
+                    icon: "house.fill",
+                    isSelected: isSelected(.farm(farm)),
+                    action: { onSelectFarm(farm) }
+                )
+                ForEach(viewModel.sheds(for: farm)) { shed in
+                    shedRow(shed: shed)
+                }
+            }
+        }
+    }
+
+    private func shedRow(shed: ShedRecord) -> some View {
+        let batches = viewModel.batches
+            .filter { $0.shedId == shed.id && $0.isRunning }
+            .sorted(by: { $0.batchNumber > $1.batchNumber })
+        return VStack(alignment: .leading, spacing: 6) {
+            scopeButton(
+                title: shed.shedName,
+                subtitle: "Shed details",
+                icon: "building.2.fill",
+                isSelected: isSelected(.shed(shed)),
+                indentation: 18,
+                action: { onSelectShed(shed) }
+            )
+            ForEach(batches) { batch in
+                scopeButton(
+                    title: batch.displayTitle,
+                    subtitle: "Running batch",
+                    icon: "arrow.triangle.2.circlepath",
+                    isSelected: isSelected(.batch(batch)),
+                    indentation: 36,
+                    action: { onSelectBatch(shed, batch) }
+                )
+            }
+        }
+    }
+
+    private func scopeButton(
+        title: String,
+        subtitle: String,
+        icon: String,
+        isSelected: Bool,
+        indentation: CGFloat = 0,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            HStack(spacing: 10) {
+                Image(systemName: icon)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(isSelected ? .white : .green)
+                    .frame(width: 28, height: 28)
+                    .background((isSelected ? Color.green : Color.green.opacity(0.12)), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(isSelected ? .white : .primary)
+                    Text(subtitle)
+                        .font(.caption2)
+                        .foregroundStyle(isSelected ? Color.white.opacity(0.8) : .secondary)
+                }
+
+                Spacer()
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
+            .background(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(isSelected ? Color.green : Color(.secondarySystemBackground))
+            )
+            .padding(.leading, indentation)
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func isSelected(_ selection: FarmSelection) -> Bool {
+        currentSelection == selection
     }
 }
