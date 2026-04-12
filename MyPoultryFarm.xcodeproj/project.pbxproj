@@ -6,6 +6,21 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		CDAB36C42F896365002E1F53 /* Auth in Frameworks */ = {isa = PBXBuildFile; productRef = CDAB36C32F896365002E1F53 /* Auth */; };
+		CDAB36C62F896365002E1F53 /* Functions in Frameworks */ = {isa = PBXBuildFile; productRef = CDAB36C52F896365002E1F53 /* Functions */; };
+		CDAB36C82F896365002E1F53 /* PostgREST in Frameworks */ = {isa = PBXBuildFile; productRef = CDAB36C72F896365002E1F53 /* PostgREST */; };
+		CDAB36CA2F896365002E1F53 /* Realtime in Frameworks */ = {isa = PBXBuildFile; productRef = CDAB36C92F896365002E1F53 /* Realtime */; };
+		CDAB36CC2F896365002E1F53 /* Storage in Frameworks */ = {isa = PBXBuildFile; productRef = CDAB36CB2F896365002E1F53 /* Storage */; };
+		CDAB36CE2F896365002E1F53 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = CDAB36CD2F896365002E1F53 /* Supabase */; };
+		D9A00002 /* (null) in Sources */ = {isa = PBXBuildFile; };
+		D9A00004 /* (null) in Sources */ = {isa = PBXBuildFile; };
+		D9A00006 /* (null) in Sources */ = {isa = PBXBuildFile; };
+		D9B00002 /* (null) in Sources */ = {isa = PBXBuildFile; };
+		D9B00004 /* (null) in Sources */ = {isa = PBXBuildFile; };
+		D9B00006 /* (null) in Sources */ = {isa = PBXBuildFile; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		CDAB35A82F894FAC002E1F53 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -52,6 +67,12 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				CDAB36C82F896365002E1F53 /* PostgREST in Frameworks */,
+				CDAB36C62F896365002E1F53 /* Functions in Frameworks */,
+				CDAB36CE2F896365002E1F53 /* Supabase in Frameworks */,
+				CDAB36C42F896365002E1F53 /* Auth in Frameworks */,
+				CDAB36CC2F896365002E1F53 /* Storage in Frameworks */,
+				CDAB36CA2F896365002E1F53 /* Realtime in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -112,6 +133,12 @@
 			);
 			name = MyPoultryFarm;
 			packageProductDependencies = (
+				CDAB36C32F896365002E1F53 /* Auth */,
+				CDAB36C52F896365002E1F53 /* Functions */,
+				CDAB36C72F896365002E1F53 /* PostgREST */,
+				CDAB36C92F896365002E1F53 /* Realtime */,
+				CDAB36CB2F896365002E1F53 /* Storage */,
+				CDAB36CD2F896365002E1F53 /* Supabase */,
 			);
 			productName = MyPoultryFarm;
 			productReference = CDAB359A2F894FA9002E1F53 /* MyPoultryFarm.app */;
@@ -195,6 +222,9 @@
 			);
 			mainGroup = CDAB35912F894FA9002E1F53;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				CDAB36C22F896365002E1F53 /* XCRemoteSwiftPackageReference "supabase-swift" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = CDAB359B2F894FA9002E1F53 /* Products */;
 			projectDirPath = "";
@@ -236,6 +266,12 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D9B00002 /* (null) in Sources */,
+				D9B00004 /* (null) in Sources */,
+				D9B00006 /* (null) in Sources */,
+				D9A00002 /* (null) in Sources */,
+				D9A00004 /* (null) in Sources */,
+				D9A00006 /* (null) in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -402,6 +438,7 @@
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -433,6 +470,7 @@
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -570,6 +608,50 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		CDAB36C22F896365002E1F53 /* XCRemoteSwiftPackageReference "supabase-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/supabase-community/supabase-swift.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.5.1;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		CDAB36C32F896365002E1F53 /* Auth */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = CDAB36C22F896365002E1F53 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Auth;
+		};
+		CDAB36C52F896365002E1F53 /* Functions */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = CDAB36C22F896365002E1F53 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Functions;
+		};
+		CDAB36C72F896365002E1F53 /* PostgREST */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = CDAB36C22F896365002E1F53 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = PostgREST;
+		};
+		CDAB36C92F896365002E1F53 /* Realtime */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = CDAB36C22F896365002E1F53 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Realtime;
+		};
+		CDAB36CB2F896365002E1F53 /* Storage */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = CDAB36C22F896365002E1F53 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Storage;
+		};
+		CDAB36CD2F896365002E1F53 /* Supabase */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = CDAB36C22F896365002E1F53 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Supabase;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = CDAB35922F894FA9002E1F53 /* Project object */;
 }
