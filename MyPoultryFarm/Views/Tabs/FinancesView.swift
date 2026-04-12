@@ -30,25 +30,16 @@ struct FinancesView: View {
     var body: some View {
         ZStack(alignment: .bottomTrailing) {
             ScrollView {
-                VStack(spacing: 16) {
-                    ScopeBanner(label: scopeLabel, icon: scopeIcon)
-
-                    summaryTiles
-
+                VStack(spacing: 14) {
+                    financialHeroCard
                     expenseBreakdownCard
-
-                    switch scopeLevel {
-                    case .overview:
-                        overviewContent
-                    case .farm:
-                        farmContent
-                    case .shed:
-                        shedContent
-                    }
+                    segmentedTransactions
                 }
-                .padding()
-                .padding(.bottom, 60)
+                .padding(.horizontal, 16)
+                .padding(.top, 8)
+                .padding(.bottom, 80)
             }
+            .background(Color(.systemGroupedBackground))
 
             addButton
         }
@@ -57,179 +48,312 @@ struct FinancesView: View {
         }
     }
 
-    // MARK: - Summary Tiles
+    // MARK: - Financial Hero Card
 
-    @ViewBuilder
-    private var summaryTiles: some View {
-        switch scopeLevel {
-        case .overview:
-            HStack(spacing: 12) {
-                SummaryTile(title: "Income", value: "₹\(Int(data.totalSalesAmount))", icon: "arrow.down.circle.fill", color: .green)
-                SummaryTile(title: "Expenses", value: "₹\(Int(data.totalExpensesAmount))", icon: "arrow.up.circle.fill", color: .red)
-                SummaryTile(title: "Profit", value: "₹\(Int(data.profit))", icon: "indianrupeesign.circle.fill", color: data.profit >= 0 ? .green : .red)
-            }
-        case .farm:
-            HStack(spacing: 12) {
-                SummaryTile(title: "Income", value: "₹\(Int(data.totalSalesAmount))", icon: "arrow.down.circle.fill", color: .green)
-                SummaryTile(title: "Expenses", value: "₹\(Int(data.totalExpensesAmount))", icon: "arrow.up.circle.fill", color: .red)
-            }
-            HStack(spacing: 12) {
-                SummaryTile(title: "Profit", value: "₹\(Int(data.profit))", icon: "indianrupeesign.circle.fill", color: data.profit >= 0 ? .green : .red)
-                SummaryTile(title: "Txns", value: "\(data.sales.count + data.expenses.count)", icon: "list.bullet", color: .gray)
-            }
-        case .shed:
-            HStack(spacing: 12) {
-                SummaryTile(title: "Income", value: "₹\(Int(data.totalSalesAmount))", icon: "arrow.down.circle.fill", color: .green)
-                SummaryTile(title: "Expenses", value: "₹\(Int(data.totalExpensesAmount))", icon: "arrow.up.circle.fill", color: .red)
-            }
-            HStack(spacing: 12) {
-                SummaryTile(title: "Profit", value: "₹\(Int(data.profit))", icon: "indianrupeesign.circle.fill", color: data.profit >= 0 ? .green : .red)
-                SummaryTile(title: "Txns", value: "\(data.sales.count + data.expenses.count)", icon: "list.bullet", color: .gray)
-            }
-        }
-    }
-
-    // MARK: - Expense Breakdown
-
-    private var expenseBreakdownCard: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Expense Breakdown")
-                .font(.subheadline.weight(.semibold))
-            Divider()
-            expenseRow("Birds", icon: "bird", color: .green, amount: data.expensesFor(category: "birds"))
-            expenseRow("Feed", icon: "leaf.fill", color: .orange, amount: data.expensesFor(category: "feed"))
-            expenseRow("Medicine", icon: "cross.case.fill", color: .purple, amount: data.expensesFor(category: "medicine"))
-            expenseRow("Labour", icon: "person.2.fill", color: .blue, amount: data.expensesFor(category: "labour"))
-            expenseRow("Other", icon: "ellipsis.circle.fill", color: .gray, amount: data.expensesFor(category: "other"))
-            Divider()
-            HStack {
-                Text("Net Profit")
-                    .font(.subheadline.weight(.semibold))
-                Spacer()
-                Text("₹\(Int(data.profit))")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(data.profit >= 0 ? .green : .red)
-            }
-        }
-        .padding()
-        .background(Color(.systemBackground))
-        .cornerRadius(14)
-        .shadow(color: .black.opacity(0.06), radius: 5, y: 2)
-    }
-
-    private func expenseRow(_ label: String, icon: String, color: Color, amount: Double) -> some View {
-        HStack(spacing: 10) {
-            Image(systemName: icon)
-                .foregroundStyle(color)
-                .frame(width: 20)
-            Text(label)
-                .font(.caption)
-            Spacer()
-            Text("₹\(Int(amount))")
-                .font(.caption.weight(.medium))
-                .foregroundStyle(.red)
-        }
-    }
-
-    // MARK: - Overview: farm tree with aggregates
-
-    private var overviewContent: some View {
-        Group {
-            Picker("View", selection: $selectedSegment) {
-                Text("By Location").tag(0)
-                Text("Income").tag(1)
-                Text("Expenses").tag(2)
-            }
-            .pickerStyle(.segmented)
-
-            switch selectedSegment {
-            case 0: treeView
-            case 1: incomeList
-            default: expenseList
-            }
-        }
-    }
-
-    // MARK: - Farm: per-shed financial summary
-
-    private var farmContent: some View {
-        let sheds = viewModel.dataStore.allSheds.filter { scopeShedIds.contains($0.id!) }
-        return ForEach(sheds) { shed in
-            let shedSales = data.sales.filter { $0.shedId == shed.id }
-            let shedExpenses = data.expenses.filter { $0.shedId == shed.id }
-            let income = shedSales.reduce(0.0) { $0 + $1.totalAmount }
-            let expense = shedExpenses.reduce(0.0) { $0 + $1.amount }
-            let profit = income - expense
-
-            VStack(alignment: .leading, spacing: 8) {
-                HStack(spacing: 8) {
-                    Image(systemName: "building.2.fill")
-                        .foregroundStyle(.orange)
-                        .frame(width: 20)
-                    Text(shed.shedName)
-                        .font(.subheadline.weight(.semibold))
-                    Spacer()
-                    Text("₹\(Int(profit))")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(profit >= 0 ? .green : .red)
-                }
-
-                HStack(spacing: 12) {
-                    Label("₹\(Int(income))", systemImage: "arrow.down.circle")
-                        .font(.caption2)
-                        .foregroundStyle(.green)
-                    Label("₹\(Int(expense))", systemImage: "arrow.up.circle")
-                        .font(.caption2)
-                        .foregroundStyle(.red)
-                    Label("\(shedSales.count + shedExpenses.count) txns", systemImage: "list.bullet")
+    private var financialHeroCard: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .top, spacing: 12) {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Net Profit")
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(.secondary)
+                    HStack(alignment: .center, spacing: 6) {
+                        Text(formatCurrencyFull(data.profit))
+                            .font(.system(size: 24, weight: .bold, design: .rounded))
+                            .foregroundStyle(data.profit >= 0 ? Color(red: 0.18, green: 0.67, blue: 0.35) : Color(red: 1.0, green: 0.33, blue: 0.31))
+                        Image(systemName: data.profit >= 0 ? "arrow.up.right" : "arrow.down.right")
+                            .font(.caption.weight(.bold))
+                            .foregroundStyle(data.profit >= 0 ? Color(red: 0.18, green: 0.67, blue: 0.35) : Color(red: 1.0, green: 0.33, blue: 0.31))
+                    }
+                    Text("\(data.sales.count + data.expenses.count) transactions")
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                 }
-                .padding(.leading, 28)
-
-                // Per-category mini breakdown
-                let categories = Dictionary(grouping: shedExpenses, by: { $0.category })
-                if !categories.isEmpty {
-                    Divider()
-                    ForEach(categories.keys.sorted(), id: \.self) { cat in
-                        let catAmount = categories[cat]!.reduce(0.0) { $0 + $1.amount }
-                        HStack(spacing: 8) {
-                            Image(systemName: categoryIcon(cat))
-                                .foregroundStyle(categoryColor(cat))
-                                .frame(width: 16)
-                            Text(cat.capitalized)
-                                .font(.caption2)
-                            Spacer()
-                            Text("₹\(Int(catAmount))")
-                                .font(.caption2.weight(.medium))
-                                .foregroundStyle(.red)
-                        }
-                        .padding(.leading, 28)
-                    }
-                }
+                Spacer(minLength: 0)
+                // Profit indicator ring
+                profitRing
             }
-            .padding()
-            .background(Color(.systemBackground))
-            .cornerRadius(14)
-            .shadow(color: .black.opacity(0.06), radius: 5, y: 2)
+
+            HStack(spacing: 12) {
+                financialMetricCell(
+                    title: "Income",
+                    value: formatCurrencyFull(data.totalSalesAmount),
+                    accent: Color(red: 0.31, green: 0.82, blue: 0.53),
+                    icon: "arrow.down.left"
+                )
+                financialMetricCell(
+                    title: "Expenses",
+                    value: formatCurrencyFull(data.totalExpensesAmount),
+                    accent: Color(red: 1.0, green: 0.43, blue: 0.43),
+                    icon: "arrow.up.right"
+                )
+            }
+        }
+        .padding(14)
+        .background(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            Color(.systemBackground),
+                            (data.profit >= 0 ? Color.green : Color.red).opacity(0.08)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                        .stroke(Color.white.opacity(0.7), lineWidth: 1)
+                )
+        )
+        .shadow(color: .black.opacity(0.06), radius: 10, y: 5)
+    }
+
+    private var profitRing: some View {
+        let total = max(data.totalSalesAmount + data.totalExpensesAmount, 1)
+        let incomeRatio = data.totalSalesAmount / total
+        return ZStack {
+            Circle()
+                .stroke(Color(.systemGray5), lineWidth: 6)
+                .frame(width: 56, height: 56)
+            Circle()
+                .trim(from: 0, to: incomeRatio)
+                .stroke(Color(red: 0.31, green: 0.82, blue: 0.53), style: StrokeStyle(lineWidth: 6, lineCap: .round))
+                .frame(width: 56, height: 56)
+                .rotationEffect(.degrees(-90))
+            Circle()
+                .trim(from: incomeRatio, to: 1.0)
+                .stroke(Color(red: 1.0, green: 0.43, blue: 0.43).opacity(0.7), style: StrokeStyle(lineWidth: 6, lineCap: .round))
+                .frame(width: 56, height: 56)
+                .rotationEffect(.degrees(-90))
+            Text("\(Int(incomeRatio * 100))%")
+                .font(.system(size: 11, weight: .bold, design: .rounded))
+                .foregroundStyle(.primary)
         }
     }
 
-    // MARK: - Shed: direct income + expense lists
-
-    private var shedContent: some View {
-        Group {
-            Picker("View", selection: $selectedSegment) {
-                Text("Income").tag(1)
-                Text("Expenses").tag(2)
+    private func financialMetricCell(title: String, value: String, accent: Color, icon: String) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(title)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            HStack(spacing: 6) {
+                Text(value)
+                    .font(.system(size: 16, weight: .bold, design: .rounded))
+                    .foregroundStyle(.primary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+                Image(systemName: icon)
+                    .font(.caption2.weight(.bold))
+                    .foregroundStyle(accent)
             }
-            .pickerStyle(.segmented)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 2)
+    }
+
+    // MARK: - Expense Breakdown (matching BatchDetailView)
+
+    private var expenseBreakdownCard: some View {
+        let categories: [(String, String, String, Color)] = [
+            ("birds", "Bird Purchase", "bird.fill", Color(red: 0.31, green: 0.82, blue: 0.53)),
+            ("feed", "Feed", "leaf.fill", Color(red: 1.0, green: 0.73, blue: 0.28)),
+            ("medicine", "Medicine", "cross.case.fill", Color(red: 0.67, green: 0.27, blue: 0.94)),
+            ("labour", "Labour", "person.2.fill", Color(red: 0.23, green: 0.59, blue: 0.96)),
+            ("other", "Other", "ellipsis.circle.fill", Color(red: 0.63, green: 0.64, blue: 0.70))
+        ]
+        return VStack(alignment: .leading, spacing: 12) {
+            Text("Expenses Breakdown")
+                .font(.subheadline.weight(.semibold))
+
+            ForEach(categories, id: \.0) { cat in
+                let amount = data.expensesFor(category: cat.0)
+                expenseBarRow(title: cat.1, icon: cat.2, color: cat.3, amount: amount)
+            }
+        }
+        .padding(14)
+        .background(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(
+                    LinearGradient(
+                        colors: [Color(.systemBackground), Color.red.opacity(0.03)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                        .stroke(Color.white.opacity(0.72), lineWidth: 1)
+                )
+        )
+        .shadow(color: .black.opacity(0.05), radius: 10, y: 5)
+    }
+
+    private func expenseBarRow(title: String, icon: String, color: Color, amount: Double) -> some View {
+        let total = max(data.totalExpensesAmount, 1)
+        let ratio = amount / total
+
+        return HStack(spacing: 10) {
+            Image(systemName: icon)
+                .font(.caption.weight(.bold))
+                .foregroundStyle(color)
+                .frame(width: 20)
+
+            Text(title)
+                .font(.caption.weight(.medium))
+                .frame(width: 80, alignment: .leading)
+
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    Capsule().fill(Color(.systemGray6))
+                    Capsule()
+                        .fill(LinearGradient(colors: [color, color.opacity(0.72)], startPoint: .leading, endPoint: .trailing))
+                        .frame(width: max(4, geo.size.width * ratio))
+                }
+            }
+            .frame(height: 8)
+
+            Text(formatCurrencyFull(amount))
+                .font(.system(size: 12, weight: .bold, design: .rounded))
+                .foregroundStyle(amount > 0 ? .primary : .secondary)
+                .frame(minWidth: 50, alignment: .trailing)
+        }
+    }
+
+    // MARK: - Segmented Transactions
+
+    private var segmentedTransactions: some View {
+        VStack(spacing: 10) {
+            transactionPicker
 
             switch selectedSegment {
+            case 0:
+                if scopeLevel == .overview { treeView } else { farmContent }
             case 1: incomeList
             default: expenseList
             }
         }
+    }
+
+    private var transactionPicker: some View {
+        HStack(spacing: 0) {
+            ForEach(Array(segmentLabels.enumerated()), id: \.offset) { idx, label in
+                Button {
+                    withAnimation(.easeInOut(duration: 0.2)) { selectedSegment = idx }
+                } label: {
+                    Text(label)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(selectedSegment == idx ? .white : .secondary)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
+                        .background(
+                            selectedSegment == idx ?
+                            Capsule().fill(Color.green) :
+                            Capsule().fill(Color.clear)
+                        )
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(3)
+        .background(Capsule().fill(Color(.systemGray6)))
+    }
+
+    private var segmentLabels: [String] {
+        switch scopeLevel {
+        case .overview: return ["By Location", "Income", "Expenses"]
+        case .farm: return ["By Shed", "Income", "Expenses"]
+        case .shed: return ["Income", "Expenses"]
+        }
+    }
+
+    // MARK: - Farm Shed Cards
+
+    private var farmContent: some View {
+        let sheds = viewModel.dataStore.allSheds.filter { shed in
+            guard let shedId = shed.id else { return false }
+            return scopeShedIds.contains(shedId)
+        }
+        return ForEach(sheds) { shed in
+            shedFinanceCard(shed: shed)
+        }
+    }
+
+    private func shedFinanceCard(shed: ShedRecord) -> some View {
+        let shedSales = data.sales.filter { $0.shedId == shed.id }
+        let shedExpenses = data.expenses.filter { $0.shedId == shed.id }
+        let income = shedSales.reduce(0.0) { $0 + $1.totalAmount }
+        let expense = shedExpenses.reduce(0.0) { $0 + $1.amount }
+        let profit = income - expense
+
+        return VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 10) {
+                Image(systemName: "building.2.fill")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.white)
+                    .frame(width: 28, height: 28)
+                    .background(Color.orange, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(shed.shedName)
+                        .font(.subheadline.weight(.semibold))
+                    Text("\(shedSales.count + shedExpenses.count) transactions")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+                Text(formatCurrencyFull(profit))
+                    .font(.subheadline.weight(.bold))
+                    .foregroundStyle(profit >= 0 ? .green : .red)
+            }
+
+            HStack(spacing: 14) {
+                HStack(spacing: 4) {
+                    Image(systemName: "arrow.down.left")
+                        .font(.system(size: 9, weight: .bold))
+                        .foregroundStyle(.green)
+                    Text("In: \(formatCurrencyFull(income))")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+                HStack(spacing: 4) {
+                    Image(systemName: "arrow.up.right")
+                        .font(.system(size: 9, weight: .bold))
+                        .foregroundStyle(.red)
+                    Text("Out: \(formatCurrencyFull(expense))")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .padding(.leading, 38)
+
+            let categories = Dictionary(grouping: shedExpenses, by: { $0.category })
+            if !categories.isEmpty {
+                Divider()
+                ForEach(categories.keys.sorted(), id: \.self) { cat in
+                    let catAmt = categories[cat]!.reduce(0.0) { $0 + $1.amount }
+                    HStack(spacing: 6) {
+                        Circle()
+                            .fill(categoryColor(cat))
+                            .frame(width: 6, height: 6)
+                        Text(cat.capitalized)
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                        Text(formatCurrencyFull(catAmt))
+                            .font(.caption2.weight(.medium))
+                    }
+                    .padding(.leading, 38)
+                }
+            }
+        }
+        .padding(14)
+        .background(
+            LinearGradient(colors: [Color(.systemBackground), Color.red.opacity(0.05)], startPoint: .topLeading, endPoint: .bottomTrailing)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(Color.red.opacity(0.12), lineWidth: 1))
+        .shadow(color: .black.opacity(0.04), radius: 5, y: 2)
     }
 
     // MARK: - Tree View
@@ -284,29 +408,44 @@ struct FinancesView: View {
                 PlaceholderCard(icon: "indianrupeesign.circle", title: "No income", subtitle: "Income records will appear once sales are made.")
             } else {
                 ForEach(data.sales) { sale in
-                    HStack(spacing: 12) {
-                        Image(systemName: "arrow.down.circle.fill")
-                            .foregroundStyle(.green)
-                            .frame(width: 28)
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(viewModel.shedName(for: sale.shedId))
-                                .font(.subheadline.weight(.medium))
-                            Text("\(sale.birdCount) birds · \(String(format: "%.1f", sale.totalWeightKg)) kg")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                        Spacer()
-                        Text("₹\(Int(sale.totalAmount))")
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(.green)
-                    }
-                    .padding()
-                    .background(Color(.systemBackground))
-                    .cornerRadius(12)
-                    .shadow(color: .black.opacity(0.04), radius: 3, y: 1)
+                    incomeRow(sale)
                 }
             }
         }
+    }
+
+    private func incomeRow(_ sale: SaleRecord) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: "arrow.down.left")
+                .font(.caption.weight(.bold))
+                .foregroundStyle(.green)
+                .frame(width: 32, height: 32)
+                .background(Color.green.opacity(0.12), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(viewModel.shedName(for: sale.shedId))
+                    .font(.subheadline.weight(.medium))
+                Text("\(sale.birdCount) birds · \(String(format: "%.0f", sale.totalWeightKg)) kg")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+            Spacer()
+            VStack(alignment: .trailing, spacing: 2) {
+                Text(formatCurrencyFull(sale.totalAmount))
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.green)
+                Text(sale.saleDate)
+                    .font(.system(size: 9, weight: .medium))
+                    .foregroundStyle(.tertiary)
+            }
+        }
+        .padding(12)
+        .background(
+            LinearGradient(colors: [Color(.systemBackground), Color.green.opacity(0.05)], startPoint: .topLeading, endPoint: .bottomTrailing)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(Color.green.opacity(0.12), lineWidth: 1))
+        .shadow(color: .black.opacity(0.03), radius: 4, y: 1)
     }
 
     // MARK: - Expense List
@@ -317,32 +456,48 @@ struct FinancesView: View {
                 PlaceholderCard(icon: "arrow.up.circle", title: "No expenses", subtitle: "Expense records will appear once costs are logged.")
             } else {
                 ForEach(data.expenses) { expense in
-                    HStack(spacing: 12) {
-                        Image(systemName: categoryIcon(expense.category))
-                            .foregroundStyle(categoryColor(expense.category))
-                            .frame(width: 28)
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(expense.category.capitalized)
-                                .font(.subheadline.weight(.medium))
-                            if let desc = expense.description {
-                                Text(desc)
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                                    .lineLimit(1)
-                            }
-                        }
-                        Spacer()
-                        Text("₹\(Int(expense.amount))")
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(.red)
-                    }
-                    .padding()
-                    .background(Color(.systemBackground))
-                    .cornerRadius(12)
-                    .shadow(color: .black.opacity(0.04), radius: 3, y: 1)
+                    expenseRowCard(expense)
                 }
             }
         }
+    }
+
+    private func expenseRowCard(_ expense: ExpenseRecord) -> some View {
+        let color = categoryColor(expense.category)
+        return HStack(spacing: 12) {
+            Image(systemName: categoryIcon(expense.category))
+                .font(.caption.weight(.bold))
+                .foregroundStyle(color)
+                .frame(width: 32, height: 32)
+                .background(color.opacity(0.12), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(expense.category.capitalized)
+                    .font(.subheadline.weight(.medium))
+                if let desc = expense.description, !desc.isEmpty {
+                    Text(desc)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+            }
+            Spacer()
+            VStack(alignment: .trailing, spacing: 2) {
+                Text(formatCurrencyFull(expense.amount))
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.red)
+                Text(expense.expenseDate)
+                    .font(.system(size: 9, weight: .medium))
+                    .foregroundStyle(.tertiary)
+            }
+        }
+        .padding(12)
+        .background(
+            LinearGradient(colors: [Color(.systemBackground), Color.red.opacity(0.04)], startPoint: .topLeading, endPoint: .bottomTrailing)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(Color.red.opacity(0.10), lineWidth: 1))
+        .shadow(color: .black.opacity(0.03), radius: 4, y: 1)
     }
 
     // MARK: - Helpers
@@ -350,19 +505,31 @@ struct FinancesView: View {
     private var addButton: some View {
         Button { showAddExpense = true } label: {
             Image(systemName: "plus")
-                .font(.title2.weight(.semibold))
+                .font(.title2.weight(.bold))
                 .foregroundStyle(.white)
-                .frame(width: 56, height: 56)
-                .background(Color.red)
+                .frame(width: 58, height: 58)
+                .background(
+                    LinearGradient(colors: [.red, .red.opacity(0.75)], startPoint: .topLeading, endPoint: .bottomTrailing)
+                )
                 .clipShape(Circle())
-                .shadow(color: .red.opacity(0.3), radius: 8, y: 4)
+                .shadow(color: .red.opacity(0.45), radius: 10, y: 5)
         }
-        .padding()
+        .padding(.trailing, 20)
+        .padding(.bottom, 28)
+    }
+
+    private func formatCurrencyFull(_ value: Double) -> String {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        formatter.maximumFractionDigits = 0
+        formatter.groupingSeparator = ","
+        let formatted = formatter.string(from: NSNumber(value: abs(value))) ?? "\(Int(abs(value)))"
+        return value < 0 ? "-₹\(formatted)" : "₹\(formatted)"
     }
 
     private func categoryIcon(_ category: String) -> String {
         switch category {
-        case "birds": return "bird"
+        case "birds": return "bird.fill"
         case "feed": return "leaf.fill"
         case "medicine": return "cross.case.fill"
         case "labour": return "person.2.fill"
@@ -372,11 +539,12 @@ struct FinancesView: View {
 
     private func categoryColor(_ category: String) -> Color {
         switch category {
-        case "birds": return .green
-        case "feed": return .orange
-        case "medicine": return .purple
-        case "labour": return .blue
-        default: return .gray
+        case "birds": return Color(red: 0.31, green: 0.82, blue: 0.53)
+        case "feed": return Color(red: 1.0, green: 0.73, blue: 0.28)
+        case "medicine": return Color(red: 0.67, green: 0.27, blue: 0.94)
+        case "labour": return Color(red: 0.23, green: 0.59, blue: 0.96)
+        default: return Color(red: 0.63, green: 0.64, blue: 0.70)
         }
     }
 }
+

@@ -18,11 +18,11 @@ struct ScopeData {
     }
 
     var runningBatches: [BatchRecord] {
-        allBatches.filter { $0.status == "running" }
+        allBatches.filter { $0.isRunning }
     }
 
     var closedBatches: [BatchRecord] {
-        allBatches.filter { $0.status == "closed" }
+        allBatches.filter { $0.isClosed }
     }
 
     var runningBatchCount: Int { runningBatches.count }
@@ -63,7 +63,7 @@ struct ScopeData {
     }
 
     var birdsLeft: Int {
-        totalBirds - totalBirdsSold - totalMortality
+        max(0, totalBirds - totalBirdsSold - totalMortality)
     }
 
     var totalSalesAmount: Double {
@@ -93,7 +93,7 @@ struct ScopeData {
     }
 
     func expensesFor(category: String) -> Double {
-        expenses.filter { $0.category == category }.reduce(0.0) { $0 + $1.amount }
+        expenses.filter { $0.category.lowercased() == category.lowercased() }.reduce(0.0) { $0 + $1.amount }
     }
 
     // MARK: - Inventory / Feed
@@ -103,23 +103,43 @@ struct ScopeData {
     }
 
     var feedItems: [InventoryRecord] {
-        inventoryItems.filter { $0.category == "feed" }
+        inventoryItems.filter { $0.isFeed }
     }
 
     var medicineItems: [InventoryRecord] {
-        inventoryItems.filter { $0.category == "medicine" }
+        inventoryItems.filter { $0.isMedicine }
+    }
+
+    var totalLoggedFeedUsed: Double {
+        dailyLogs.reduce(0.0) { $0 + $1.feedUsedBags }
     }
 
     var feedAvailable: Double {
-        feedItems.reduce(0.0) { $0 + $1.quantity - $1.used }
+        max(0, totalFeedQuantity - totalLoggedFeedUsed)
     }
 
     var feedUsed: Double {
-        feedItems.reduce(0.0) { $0 + $1.used }
+        totalLoggedFeedUsed
     }
 
     var totalFeedQuantity: Double {
         feedItems.reduce(0.0) { $0 + $1.quantity }
+    }
+
+    func totalFeedQuantity(in shedIds: Set<UUID>) -> Double {
+        feedItems
+            .filter { shedIds.contains($0.shedId) }
+            .reduce(0.0) { $0 + $1.quantity }
+    }
+
+    func feedUsed(in shedIds: Set<UUID>) -> Double {
+        viewModel.dailyLogs
+            .filter { shedIds.contains($0.shedId) }
+            .reduce(0.0) { $0 + $1.feedUsedBags }
+    }
+
+    func feedAvailable(in shedIds: Set<UUID>) -> Double {
+        max(0, totalFeedQuantity(in: shedIds) - feedUsed(in: shedIds))
     }
 
     var feedCostTotal: Double {
@@ -127,15 +147,15 @@ struct ScopeData {
     }
 
     var feedConsumptionRatePerDay: Double {
-        // Average daily feed used from daily logs
-        let totalFeedBags = dailyLogs.reduce(0.0) { $0 + $1.feedUsedKg }
+        // Average daily feed used in bags from daily logs.
+        let totalFeedBags = dailyLogs.reduce(0.0) { $0 + $1.feedUsedBags }
         let uniqueDays = Set(dailyLogs.map { $0.logDate }).count
         return uniqueDays > 0 ? totalFeedBags / Double(uniqueDays) : 0
     }
 
     var highestFeedConsumptionBatch: (batch: BatchRecord, feedBags: Double)? {
         let results = runningBatches.map { batch in
-            let feed = viewModel.dailyLogs.filter { $0.batchId == batch.id }.reduce(0.0) { $0 + $1.feedUsedKg }
+            let feed = viewModel.dailyLogs.filter { $0.batchId == batch.id }.reduce(0.0) { $0 + $1.feedUsedBags }
             return (batch, feed)
         }.sorted { $0.1 > $1.1 }
         return results.first
@@ -165,17 +185,27 @@ struct ScopeData {
             guard let bId = batch.id else { return nil }
             let logs = viewModel.dailyLogs.filter { $0.batchId == bId }.sorted { $0.logDate < $1.logDate }
             guard !logs.isEmpty else { return nil }
+
             let formatter = DateFormatter()
             formatter.dateFormat = "yyyy-MM-dd"
             guard let start = formatter.date(from: batch.startDate) else { return nil }
-            var cumulative = 0
-            let points = logs.compactMap { log -> DayPoint? in
-                guard let logDate = formatter.date(from: log.logDate) else { return nil }
-                let day = max(1, Calendar.current.dateComponents([.day], from: start, to: logDate).day ?? 1)
-                cumulative += log.mortality
-                return DayPoint(day: day, value: Double(cumulative))
+
+            // Sum mortality by relative day in the batch lifecycle.
+            var mortalityByDay: [Int: Int] = [:]
+            var maxObservedDay = 1
+
+            for log in logs {
+                guard let logDate = formatter.date(from: log.logDate) else { continue }
+                let day = max(1, (Calendar.current.dateComponents([.day], from: start, to: logDate).day ?? 0) + 1)
+                mortalityByDay[day, default: 0] += log.mortality
+                maxObservedDay = max(maxObservedDay, day)
             }
-            return BatchSeries(id: bId, label: "Batch #\(batch.batchNumber)", points: points)
+
+            let points = (1...maxObservedDay).map { day in
+                DayPoint(day: day, value: Double(mortalityByDay[day, default: 0]))
+            }
+
+            return BatchSeries(id: bId, label: batch.batchName ?? "Batch #\(batch.batchNumber)", points: points)
         }
     }
 
@@ -191,7 +221,7 @@ struct ScopeData {
             let points = logs.compactMap { log -> DayPoint? in
                 guard let logDate = formatter.date(from: log.logDate) else { return nil }
                 let day = max(1, Calendar.current.dateComponents([.day], from: start, to: logDate).day ?? 1)
-                cumulative += log.feedUsedKg
+                cumulative += log.feedUsedBags
                 return DayPoint(day: day, value: cumulative)
             }
             return BatchSeries(id: bId, label: "Batch #\(batch.batchNumber)", points: points)

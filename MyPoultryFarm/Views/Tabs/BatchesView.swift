@@ -24,33 +24,21 @@ struct BatchesView: View {
     var body: some View {
         ZStack(alignment: .bottomTrailing) {
             ScrollView {
-                VStack(spacing: 16) {
-                    ScopeBanner(label: scopeLabel, icon: scopeIcon)
+                VStack(spacing: 14) {
+                    batchHeroCard
+                    segmentPicker
 
-                    // Summary tiles
-                    HStack(spacing: 12) {
-                        SummaryTile(title: "Running", value: runningCount, icon: "arrow.triangle.2.circlepath", color: .green)
-                        SummaryTile(title: "Birds", value: totalBirds, icon: "bird.fill", color: .blue)
-                        SummaryTile(title: "Left", value: birdsLeftCount, icon: "bird", color: .purple)
-                    }
-
-                    // Segment picker
-                    Picker("Filter", selection: $selectedSegment) {
-                        Text("Running").tag(0)
-                        Text("Closed").tag(1)
-                    }
-                    .pickerStyle(.segmented)
-
-                    // Batch list
                     if selectedSegment == 0 {
                         runningBatches
                     } else {
                         closedBatches
                     }
                 }
-                .padding()
-                .padding(.bottom, 60)
+                .padding(.horizontal, 16)
+                .padding(.top, 8)
+                .padding(.bottom, 80)
             }
+            .background(Color(.systemGroupedBackground))
 
             addButton
         }
@@ -59,19 +47,120 @@ struct BatchesView: View {
         }
     }
 
+    // MARK: - Hero Card
+
+    private var batchHeroCard: some View {
+        VStack(spacing: 0) {
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Total Birds")
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(.white.opacity(0.65))
+                    Text(totalBirds)
+                        .font(.system(size: 28, weight: .bold, design: .rounded))
+                        .foregroundStyle(.white)
+                }
+                Spacer()
+                HStack(spacing: 4) {
+                    Image(systemName: "arrow.triangle.2.circlepath")
+                        .font(.system(size: 10, weight: .bold))
+                    Text("\(runningBatchesList.count) Running")
+                        .font(.caption.weight(.semibold))
+                }
+                .foregroundStyle(.white.opacity(0.75))
+                .padding(.horizontal, 10)
+                .padding(.vertical, 4)
+                .background(Capsule().fill(.white.opacity(0.15)))
+            }
+            .padding(.horizontal, 18)
+            .padding(.top, 18)
+            .padding(.bottom, 14)
+
+            Rectangle().fill(.white.opacity(0.12)).frame(height: 1).padding(.horizontal, 16)
+
+            HStack(spacing: 0) {
+                heroStat(value: birdsLeftCount, label: "Left", icon: "bird.fill", color: .cyan)
+                Rectangle().fill(.white.opacity(0.12)).frame(width: 1, height: 32)
+                heroStat(value: "\(totalMortality)", label: "Deaths", icon: "heart.slash.fill", color: .red)
+                Rectangle().fill(.white.opacity(0.12)).frame(width: 1, height: 32)
+                heroStat(value: "\(totalBirdsSold)", label: "Sold", icon: "cart.fill", color: .yellow)
+            }
+            .padding(.vertical, 12)
+        }
+        .background(
+            LinearGradient(
+                colors: [Color(red: 0.08, green: 0.42, blue: 0.32),
+                         Color(red: 0.12, green: 0.55, blue: 0.42)],
+                startPoint: .topLeading, endPoint: .bottomTrailing
+            )
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+    }
+
+    private func heroStat(value: String, label: String, icon: String, color: Color) -> some View {
+        VStack(spacing: 3) {
+            Image(systemName: icon)
+                .font(.system(size: 11, weight: .bold))
+                .foregroundStyle(color)
+            Text(value)
+                .font(.subheadline.weight(.bold))
+                .foregroundStyle(.white)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+            Text(label)
+                .font(.system(size: 9, weight: .medium))
+                .foregroundStyle(.white.opacity(0.55))
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    // MARK: - Segment Picker
+
+    private var segmentPicker: some View {
+        HStack(spacing: 0) {
+            ForEach(["Running", "Closed"], id: \.self) { label in
+                let idx = label == "Running" ? 0 : 1
+                Button {
+                    withAnimation(.easeInOut(duration: 0.2)) { selectedSegment = idx }
+                } label: {
+                    HStack(spacing: 5) {
+                        Image(systemName: idx == 0 ? "arrow.triangle.2.circlepath" : "archivebox.fill")
+                            .font(.system(size: 10, weight: .bold))
+                        Text(label)
+                            .font(.caption.weight(.semibold))
+                    }
+                    .foregroundStyle(selectedSegment == idx ? .white : .secondary)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 8)
+                    .background(
+                        selectedSegment == idx ?
+                        Capsule().fill(Color.green) :
+                        Capsule().fill(Color.clear)
+                    )
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(3)
+        .background(Capsule().fill(Color(.systemGray6)))
+    }
+
     // MARK: - Add Button
 
     private var addButton: some View {
         Button { showAddBatch = true } label: {
             Image(systemName: "plus")
-                .font(.title2.weight(.semibold))
+                .font(.title2.weight(.bold))
                 .foregroundStyle(.white)
-                .frame(width: 56, height: 56)
-                .background(Color.green)
+                .frame(width: 58, height: 58)
+                .background(
+                    LinearGradient(colors: [.green, .green.opacity(0.75)], startPoint: .topLeading, endPoint: .bottomTrailing)
+                )
                 .clipShape(Circle())
-                .shadow(color: .green.opacity(0.3), radius: 8, y: 4)
+                .shadow(color: .green.opacity(0.45), radius: 10, y: 5)
         }
-        .padding()
+        .padding(.trailing, 20)
+        .padding(.bottom, 28)
     }
 
     // MARK: - Scope Data
@@ -81,16 +170,14 @@ struct BatchesView: View {
     }
 
     private var runningBatchesList: [BatchRecord] {
-        scopeBatches.filter { $0.status == "running" }
+        scopeBatches.filter { $0.isRunning }
     }
 
     private var closedBatchesList: [BatchRecord] {
-        scopeBatches.filter { $0.status == "closed" }
+        scopeBatches.filter { $0.isClosed }
     }
 
-    private var runningCount: String { "\(runningBatchesList.count)" }
     private var totalBirds: String { "\(runningBatchesList.reduce(0) { $0 + $1.computedTotalBirds })" }
-    private var closedCount: String { "\(closedBatchesList.count)" }
 
     private var scopeSales: [SaleRecord] {
         viewModel.sales.filter { scopeShedIds.contains($0.shedId) }
@@ -100,15 +187,27 @@ struct BatchesView: View {
         scopeSales.reduce(0) { $0 + $1.birdCount }
     }
 
-    private var birdsLeftValue: Int {
-        runningBatchesList.reduce(0) { $0 + $1.computedTotalBirds } - totalBirdsSold
+    private var totalMortality: Int {
+        let scopeLogs = viewModel.dailyLogs.filter { log in
+            runningBatchesList.contains { $0.id == log.batchId }
+        }
+        return scopeLogs.reduce(0) { $0 + $1.mortality }
     }
 
-    private var birdsLeftCount: String { "\(birdsLeftValue)" }
+    private var birdsLeftValue: Int {
+        runningBatchesList.reduce(0) { $0 + $1.computedTotalBirds } - totalBirdsSold - totalMortality
+    }
+
+    private var birdsLeftCount: String { "\(max(0, birdsLeftValue))" }
 
     private func birdsSoldForBatch(_ batch: BatchRecord) -> Int {
         guard let batchId = batch.id else { return 0 }
         return viewModel.sales.filter { $0.batchId == batchId }.reduce(0) { $0 + $1.birdCount }
+    }
+
+    private func mortalityForBatch(_ batch: BatchRecord) -> Int {
+        guard let batchId = batch.id else { return 0 }
+        return viewModel.dailyLogs.filter { $0.batchId == batchId }.reduce(0) { $0 + $1.mortality }
     }
 
     // MARK: - Running Batches
@@ -148,49 +247,74 @@ struct BatchesView: View {
     // MARK: - Batch Card
 
     private func batchCard(batch: BatchRecord, isRunning: Bool) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
+        let sold = birdsSoldForBatch(batch)
+        let dead = mortalityForBatch(batch)
+        let left = max(0, batch.computedTotalBirds - sold - dead)
+        let statusColor: Color = isRunning ? .green : .gray
+
+        return VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 10) {
+                Image(systemName: "arrow.triangle.2.circlepath")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(.white)
+                    .frame(width: 30, height: 30)
+                    .background(statusColor, in: RoundedRectangle(cornerRadius: 9, style: .continuous))
+
+                VStack(alignment: .leading, spacing: 2) {
                     Text(viewModel.shedName(for: batch.shedId))
-                        .font(.headline)
+                        .font(.subheadline.weight(.bold))
                     Text("Batch #\(batch.batchNumber)")
-                        .font(.caption)
+                        .font(.caption2)
                         .foregroundStyle(.secondary)
                 }
                 Spacer()
                 Text(isRunning ? "Running" : "Closed")
-                    .font(.caption.weight(.semibold))
+                    .font(.caption2.weight(.bold))
+                    .foregroundStyle(statusColor)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 4)
-                    .background(isRunning ? Color.green.opacity(0.15) : Color.gray.opacity(0.15))
-                    .foregroundStyle(isRunning ? .green : .gray)
-                    .cornerRadius(8)
+                    .background(statusColor.opacity(0.1), in: Capsule())
             }
 
-            Divider()
+            Rectangle().fill(Color(.separator).opacity(0.2)).frame(height: 1)
 
-            HStack(spacing: 20) {
-                Label("\(batch.computedTotalBirds) birds", systemImage: "bird.fill")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                Label("\(batch.computedTotalBirds - birdsSoldForBatch(batch)) left", systemImage: "bird")
-                    .font(.caption)
-                    .foregroundStyle(.purple)
-                Label("Day \(daysSince(batch.startDate))", systemImage: "calendar")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+            HStack(spacing: 0) {
+                batchStat(value: "\(batch.computedTotalBirds)", label: "birds", icon: "bird.fill", color: .primary)
+                batchStat(value: "\(left)", label: "left", color: .green)
+                batchStat(value: "Day \(daysSince(batch.startDate))", label: "", icon: "calendar", color: .secondary)
                 if batch.computedTotalCost > 0 {
-                    Label("₹\(Int(batch.computedTotalCost))", systemImage: "indianrupeesign.circle")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                    batchStat(value: formatCurrency(batch.computedTotalCost), label: "", icon: "indianrupeesign.circle", color: .secondary)
                 }
-                Spacer()
             }
         }
-        .padding()
-        .background(Color(.systemBackground))
-        .cornerRadius(14)
-        .shadow(color: .black.opacity(0.06), radius: 5, y: 2)
+        .padding(14)
+        .background(
+            LinearGradient(colors: [Color(.systemBackground), Color.green.opacity(0.06)], startPoint: .topLeading, endPoint: .bottomTrailing)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(Color.green.opacity(0.14), lineWidth: 1))
+        .shadow(color: .black.opacity(0.04), radius: 6, y: 2)
+    }
+
+    private func batchStat(value: String, label: String, icon: String? = nil, color: Color) -> some View {
+        HStack(spacing: 3) {
+            if let icon = icon {
+                Image(systemName: icon)
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundStyle(color == .primary ? .gray : color)
+            }
+            VStack(spacing: 1) {
+                Text(value)
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(color)
+                if !label.isEmpty {
+                    Text(label)
+                        .font(.system(size: 8, weight: .medium))
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
+        .frame(maxWidth: .infinity)
     }
 
     // MARK: - Helpers
@@ -200,5 +324,13 @@ struct BatchesView: View {
         formatter.dateFormat = "yyyy-MM-dd"
         guard let date = formatter.date(from: dateString) else { return 0 }
         return max(1, Calendar.current.dateComponents([.day], from: date, to: Date()).day ?? 1)
+    }
+
+    private func formatCurrency(_ value: Double) -> String {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        formatter.maximumFractionDigits = 0
+        formatter.groupingSeparator = ","
+        return "₹\(formatter.string(from: NSNumber(value: abs(value))) ?? "\(Int(abs(value)))")"
     }
 }

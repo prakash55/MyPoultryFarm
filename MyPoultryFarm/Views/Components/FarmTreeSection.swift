@@ -59,13 +59,16 @@ struct FarmTreeSection<FarmInfo: View, ShedInfo: View, BatchInfo: View>: View {
             }
         }
         .padding()
-        .background(Color(.systemBackground))
+        .background(
+            LinearGradient(colors: [Color(.systemBackground), Color.green.opacity(0.05)], startPoint: .topLeading, endPoint: .bottomTrailing)
+        )
         .cornerRadius(14)
+        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.green.opacity(0.12), lineWidth: 1))
         .shadow(color: .black.opacity(0.06), radius: 5, y: 2)
     }
 
     private func shedNode(shed: ShedRecord) -> some View {
-        let batches = viewModel.batches.filter { $0.shedId == shed.id && $0.status == "running" }
+        let batches = viewModel.batches.filter { $0.shedId == shed.id && $0.isRunning }
 
         return VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 8) {

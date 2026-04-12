@@ -34,11 +34,14 @@ struct MyFarmsView: View {
             }
             .navigationTitle("My Farms")
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
+                ToolbarItem(placement: .topBarTrailing) {
                     Button {
                         dismiss()
                     } label: {
-                        Label("Close", systemImage: "xmark.circle.fill")
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.title3)
+                            .symbolRenderingMode(.hierarchical)
+                            .foregroundStyle(.secondary)
                     }
                 }
             }
@@ -78,88 +81,78 @@ struct MyFarmsView: View {
 
     private var mainContent: some View {
         ScrollView {
-            VStack(spacing: 16) {
-                // Farmer profile card
-                profileCard
+            VStack(spacing: 14) {
+                profileHeroCard
+                summaryStrip
 
-                // Summary tiles
-                summaryRow
-
-                // Farm cards
                 ForEach(viewModel.farms) { farm in
                     farmCard(farm: farm)
                 }
 
-                // Add farm button
-                Button {
-                    showAddFarm = true
-                } label: {
-                    Label("Add Farm", systemImage: "plus.circle.fill")
-                        .font(.subheadline.weight(.semibold))
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Color.green.opacity(0.1))
-                        .foregroundStyle(.green)
-                        .cornerRadius(12)
-                }
-
+                addFarmButton
                 logoutSection
             }
-            .padding()
+            .padding(.horizontal, 16)
+            .padding(.top, 8)
+            .padding(.bottom, 20)
         }
         .scrollIndicators(.hidden)
+        .background(Color(.systemGroupedBackground))
     }
 
-    // MARK: - Profile Card
+    // MARK: - Profile Hero Card
 
-    private var profileCard: some View {
+    private var profileHeroCard: some View {
         VStack(spacing: 0) {
-            LinearGradient(
-                colors: [Color.green.opacity(0.15), Color.blue.opacity(0.06)],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .frame(height: 6)
-
             HStack(spacing: 14) {
-                // Avatar
                 ZStack {
                     Circle()
-                        .fill(Color.green.opacity(0.15))
-                        .frame(width: 56, height: 56)
+                        .fill(.white.opacity(0.18))
+                        .frame(width: 52, height: 52)
                     Text(avatarInitials)
-                        .font(.title2.bold())
-                        .foregroundStyle(.green)
+                        .font(.title3.bold())
+                        .foregroundStyle(.white)
                 }
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text(viewModel.profile?.fullName ?? "Farmer")
-                        .font(.title3.bold())
+                        .font(.title3.weight(.bold))
+                        .foregroundStyle(.white)
                     Text("Farm Owner")
                         .font(.caption.weight(.semibold))
-                        .foregroundStyle(.green)
+                        .foregroundStyle(.white.opacity(0.7))
                     if let phone = viewModel.profile?.phone, !phone.isEmpty {
-                        Label(phone, systemImage: "phone.fill")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                        HStack(spacing: 4) {
+                            Image(systemName: "phone.fill")
+                                .font(.system(size: 9))
+                            Text(phone)
+                                .font(.caption)
+                        }
+                        .foregroundStyle(.white.opacity(0.55))
                     }
                 }
 
                 Spacer()
 
-                Button {
-                    showEditProfile = true
-                } label: {
-                    Image(systemName: "pencil.circle.fill")
-                        .font(.title2)
-                        .foregroundStyle(.green)
+                Button { showEditProfile = true } label: {
+                    Image(systemName: "pencil")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(.white)
+                        .frame(width: 32, height: 32)
+                        .background(.white.opacity(0.18), in: Circle())
                 }
             }
-            .padding()
+            .padding(.horizontal, 18)
+            .padding(.vertical, 18)
         }
-        .background(Color(.systemBackground))
-        .cornerRadius(14)
-        .shadow(color: .black.opacity(0.06), radius: 5, y: 2)
+        .background(
+            LinearGradient(
+                colors: [Color(red: 0.08, green: 0.42, blue: 0.32),
+                         Color(red: 0.12, green: 0.55, blue: 0.42)],
+                startPoint: .topLeading, endPoint: .bottomTrailing
+            )
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
     }
 
     private var avatarInitials: String {
@@ -169,52 +162,45 @@ struct MyFarmsView: View {
         return initials.isEmpty ? "🐔" : initials.uppercased()
     }
 
-    // MARK: - Summary Row
+    // MARK: - Summary Strip
 
-    private var summaryRow: some View {
-        HStack(spacing: 12) {
-            summaryTile(
+    private var summaryStrip: some View {
+        HStack(spacing: 10) {
+            summaryPill(
                 title: "Farms",
                 value: "\(viewModel.farms.count)",
-                icon: "house.fill",
                 color: .green
             )
-            summaryTile(
-                title: "Total Sheds",
+            summaryPill(
+                title: "Sheds",
                 value: "\(viewModel.shedsByFarm.values.flatMap { $0 }.count)",
-                icon: "building.2.fill",
                 color: .orange
             )
-            summaryTile(
+            summaryPill(
                 title: "Capacity",
                 value: "\(viewModel.shedsByFarm.values.flatMap { $0 }.reduce(0) { $0 + $1.capacity })",
-                icon: "bird.fill",
                 color: .blue
             )
         }
     }
 
-    // MARK: - Summary Tile
-
-    private func summaryTile(title: String, value: String, icon: String, color: Color) -> some View {
-        VStack(spacing: 6) {
-            Image(systemName: icon)
-                .font(.title3)
-                .foregroundStyle(color)
+    private func summaryPill(title: String, value: String, color: Color) -> some View {
+        VStack(spacing: 4) {
             Text(value)
-                .font(.title2.bold())
+                .font(.title3.weight(.bold))
+                .foregroundStyle(color)
             Text(title)
-                .font(.caption)
+                .font(.system(size: 10, weight: .medium))
                 .foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 12)
         .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(.ultraThinMaterial)
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(color.opacity(0.08))
                 .overlay(
-                    RoundedRectangle(cornerRadius: 12)
-                        .stroke(color.opacity(0.2), lineWidth: 1)
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .stroke(color.opacity(0.15), lineWidth: 1)
                 )
         )
     }
@@ -222,65 +208,103 @@ struct MyFarmsView: View {
     // MARK: - Farm Card
 
     private func farmCard(farm: FarmRecord) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            // Farm header
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 10) {
+                Image(systemName: "house.fill")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(.white)
+                    .frame(width: 30, height: 30)
+                    .background(Color.green, in: RoundedRectangle(cornerRadius: 9, style: .continuous))
+
+                VStack(alignment: .leading, spacing: 2) {
                     Text(farm.farmName)
-                        .font(.title3.bold())
+                        .font(.subheadline.weight(.bold))
                     if let location = farm.location, !location.isEmpty {
-                        Label(location, systemImage: "mappin")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                        HStack(spacing: 3) {
+                            Image(systemName: "mappin")
+                                .font(.system(size: 8))
+                            Text(location)
+                                .font(.caption2)
+                        }
+                        .foregroundStyle(.secondary)
                     }
                 }
                 Spacer()
-                Button {
-                    editingFarm = farm
-                } label: {
-                    Image(systemName: "pencil.circle.fill")
-                        .font(.title3)
+                Button { editingFarm = farm } label: {
+                    Image(systemName: "pencil")
+                        .font(.caption.weight(.bold))
                         .foregroundStyle(.green)
+                        .frame(width: 28, height: 28)
+                        .background(Color.green.opacity(0.1), in: Circle())
                 }
             }
 
-            Divider()
-
-            // Shed details
             let sheds = viewModel.sheds(for: farm)
             if sheds.isEmpty {
                 Text("No sheds added")
-                    .font(.subheadline)
+                    .font(.caption)
                     .foregroundStyle(.secondary)
+                    .padding(.leading, 40)
             } else {
+                Rectangle()
+                    .fill(Color(.separator).opacity(0.2))
+                    .frame(height: 1)
+
                 ForEach(sheds) { shed in
-                    HStack {
-                        Image(systemName: "building.2")
+                    HStack(spacing: 10) {
+                        Image(systemName: "building.2.fill")
+                            .font(.system(size: 10, weight: .bold))
                             .foregroundStyle(.orange)
-                            .frame(width: 24)
+                            .frame(width: 24, height: 24)
+                            .background(Color.orange.opacity(0.1), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
                         Text(shed.shedName)
-                            .font(.subheadline)
+                            .font(.subheadline.weight(.medium))
                         Spacer()
                         Text("\(shed.capacity) birds")
-                            .font(.subheadline)
+                            .font(.caption.weight(.semibold))
                             .foregroundStyle(.secondary)
                     }
                 }
 
-                // Capacity summary for this farm
                 HStack {
                     Spacer()
                     Text("Total: \(viewModel.totalCapacity(for: farm)) birds")
-                        .font(.caption.weight(.semibold))
+                        .font(.caption.weight(.bold))
                         .foregroundStyle(.green)
                 }
-                .padding(.top, 4)
             }
         }
-        .padding()
-        .background(Color(.systemBackground))
-        .cornerRadius(14)
-        .shadow(color: .black.opacity(0.06), radius: 5, y: 2)
+        .padding(14)
+        .background(
+            LinearGradient(colors: [Color(.systemBackground), Color.green.opacity(0.06)], startPoint: .topLeading, endPoint: .bottomTrailing)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(Color.green.opacity(0.14), lineWidth: 1))
+        .shadow(color: .black.opacity(0.04), radius: 6, y: 2)
+    }
+
+    // MARK: - Add Farm Button
+
+    private var addFarmButton: some View {
+        Button { showAddFarm = true } label: {
+            HStack(spacing: 6) {
+                Image(systemName: "plus.circle.fill")
+                    .font(.subheadline.weight(.bold))
+                Text("Add Farm")
+                    .font(.subheadline.weight(.semibold))
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 14)
+            .foregroundStyle(.green)
+            .background(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(Color.green.opacity(0.08))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .stroke(Color.green.opacity(0.2), lineWidth: 1)
+                    )
+            )
+        }
     }
 
     // MARK: - Empty State
@@ -304,24 +328,24 @@ struct MyFarmsView: View {
     // MARK: - Logout
 
     private var logoutSection: some View {
-        Button {
-            showLogoutConfirmation = true
-        } label: {
-            HStack(spacing: 8) {
+        Button { showLogoutConfirmation = true } label: {
+            HStack(spacing: 6) {
                 Image(systemName: "rectangle.portrait.and.arrow.right")
+                    .font(.caption.weight(.bold))
                 Text("Log Out")
                     .font(.subheadline.weight(.semibold))
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, 12)
             .foregroundStyle(.red)
-            .background(Color.red.opacity(0.1))
-            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .background(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(Color.red.opacity(0.06))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .stroke(Color.red.opacity(0.15), lineWidth: 1)
+                    )
+            )
         }
-        .padding(.top, 6)
     }
-}
-
-#Preview {
-    MyFarmsView(authViewModel: AuthViewModel(), farmsViewModel: MyFarmsViewModel())
 }

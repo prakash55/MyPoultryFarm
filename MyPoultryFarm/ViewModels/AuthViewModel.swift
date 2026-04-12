@@ -41,6 +41,7 @@ class AuthViewModel: ObservableObject {
     @Injected private var profileRepo: ProfileRepositoryProtocol
     @Injected private var authService: AuthServiceProtocol
     private var cancellables = Set<AnyCancellable>()
+    private var authListenerTask: Task<Void, Never>?
 
     // MARK: - Init
 
@@ -48,10 +49,15 @@ class AuthViewModel: ObservableObject {
         listenForAuthChanges()
     }
 
+    deinit {
+        authListenerTask?.cancel()
+    }
+
     // MARK: - Auth State Listener
 
     private func listenForAuthChanges() {
-        Task {
+        authListenerTask?.cancel()
+        authListenerTask = Task {
             for await state in authService.authStateChanges() {
                 switch state.isSignedIn {
                 case true:
@@ -245,6 +251,8 @@ class AuthViewModel: ObservableObject {
     // MARK: - Logout
 
     func logout() {
+        authListenerTask?.cancel()
+        authListenerTask = nil
         Task {
             do {
                 try await authService.signOut()

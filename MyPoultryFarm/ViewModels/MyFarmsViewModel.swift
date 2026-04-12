@@ -56,9 +56,19 @@ class MyFarmsViewModel: ObservableObject {
                 farms = loadedFarms
 
                 var shedsMap: [UUID: [ShedRecord]] = [:]
-                for farm in loadedFarms {
-                    if let farmId = farm.id {
-                        shedsMap[farmId] = try await shedRepo.getSheds(farmId: farmId)
+                await withTaskGroup(of: (UUID, [ShedRecord])?.self) { group in
+                    for farm in loadedFarms {
+                        if let farmId = farm.id {
+                            group.addTask { [shedRepo] in
+                                guard let sheds = try? await shedRepo.getSheds(farmId: farmId) else { return nil }
+                                return (farmId, sheds)
+                            }
+                        }
+                    }
+                    for await result in group {
+                        if let (farmId, sheds) = result {
+                            shedsMap[farmId] = sheds
+                        }
                     }
                 }
                 shedsByFarm = shedsMap

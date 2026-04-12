@@ -47,7 +47,7 @@ struct FarmDashboardView: View {
     }
 
     private func shedCard(shed: ShedRecord) -> some View {
-        let batches = viewModel.batches.filter { $0.shedId == shed.id && $0.status == "running" }
+        let batches = viewModel.batches.filter { $0.shedId == shed.id && $0.isRunning }
         let birdCount = batches.reduce(0) { $0 + $1.computedTotalBirds }
 
         return VStack(alignment: .leading, spacing: 8) {
@@ -79,7 +79,7 @@ struct FarmDashboardView: View {
         .padding()
         .background(
             RoundedRectangle(cornerRadius: 14)
-                .fill(.thinMaterial)
+                .fill(LinearGradient(colors: [Color(.systemBackground), Color.orange.opacity(0.06)], startPoint: .topLeading, endPoint: .bottomTrailing))
                 .overlay(
                     RoundedRectangle(cornerRadius: 14)
                         .stroke(Color.orange.opacity(0.14), lineWidth: 1)
