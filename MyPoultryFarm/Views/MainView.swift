@@ -29,7 +29,7 @@ struct MainView: View {
                         .onAppear {
                             viewModel.loadAll()
                         }
-                        .onReceive(viewModel.$isLoading) { loading in
+                        .onChange(of: viewModel.isLoading) { _, loading in
                             guard !dataReady, !loading else { return }
                             initialSelection = FarmSelection.from(storageKey: savedSelectionKey, viewModel: viewModel)
                             dataReady = true
