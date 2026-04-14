@@ -217,14 +217,22 @@ struct ScopeData {
             let formatter = DateFormatter()
             formatter.dateFormat = "yyyy-MM-dd"
             guard let start = formatter.date(from: batch.startDate) else { return nil }
-            var cumulative = 0.0
-            let points = logs.compactMap { log -> DayPoint? in
-                guard let logDate = formatter.date(from: log.logDate) else { return nil }
-                let day = max(1, Calendar.current.dateComponents([.day], from: start, to: logDate).day ?? 1)
-                cumulative += log.feedUsedBags
-                return DayPoint(day: day, value: cumulative)
+
+            var feedByDay: [Int: Double] = [:]
+            var maxObservedDay = 1
+
+            for log in logs {
+                guard let logDate = formatter.date(from: log.logDate) else { continue }
+                let day = max(1, (Calendar.current.dateComponents([.day], from: start, to: logDate).day ?? 0) + 1)
+                feedByDay[day, default: 0] += log.feedUsedBags
+                maxObservedDay = max(maxObservedDay, day)
             }
-            return BatchSeries(id: bId, label: "Batch #\(batch.batchNumber)", points: points)
+
+            let points = (1...maxObservedDay).map { day in
+                DayPoint(day: day, value: feedByDay[day, default: 0])
+            }
+
+            return BatchSeries(id: bId, label: batch.batchName ?? "Batch #\(batch.batchNumber)", points: points)
         }
     }
 
@@ -236,12 +244,26 @@ struct ScopeData {
             let formatter = DateFormatter()
             formatter.dateFormat = "yyyy-MM-dd"
             guard let start = formatter.date(from: batch.startDate) else { return nil }
-            let points = logs.compactMap { log -> DayPoint? in
-                guard let logDate = formatter.date(from: log.logDate) else { return nil }
-                let day = max(1, Calendar.current.dateComponents([.day], from: start, to: logDate).day ?? 1)
-                return DayPoint(day: day, value: log.avgWeightKg)
+
+            var weightByDay: [Int: (total: Double, count: Int)] = [:]
+            var maxObservedDay = 1
+
+            for log in logs {
+                guard let logDate = formatter.date(from: log.logDate) else { continue }
+                let day = max(1, (Calendar.current.dateComponents([.day], from: start, to: logDate).day ?? 0) + 1)
+                let existing = weightByDay[day, default: (0, 0)]
+                weightByDay[day] = (existing.total + log.avgWeightKg * 1000, existing.count + 1)
+                maxObservedDay = max(maxObservedDay, day)
             }
-            return BatchSeries(id: bId, label: "Batch #\(batch.batchNumber)", points: points)
+
+            // Only include days that have weight readings (no zero-fill for missing days)
+            let points = (1...maxObservedDay).compactMap { day -> DayPoint? in
+                guard let entry = weightByDay[day] else { return nil }
+                return DayPoint(day: day, value: entry.total / Double(entry.count))
+            }
+            guard !points.isEmpty else { return nil }
+
+            return BatchSeries(id: bId, label: batch.batchName ?? "Batch #\(batch.batchNumber)", points: points)
         }
     }
 }

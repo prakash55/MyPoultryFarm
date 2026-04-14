@@ -72,8 +72,9 @@ struct DashboardView<Content: View>: View {
                             icon: "leaf.fill",
                             color: .orange,
                             series: data.feedChartData,
-                            yLabel: "Cumulative Feed (bags)",
-                            xLabel: "Day"
+                            yLabel: "Bags / Day",
+                            xLabel: "Day",
+                            xDomain: 1...60
                         )
                     }
 
@@ -83,8 +84,9 @@ struct DashboardView<Content: View>: View {
                             icon: "scalemass.fill",
                             color: .blue,
                             series: data.weightChartData,
-                            yLabel: "Weight (kg)",
-                            xLabel: "Day"
+                            yLabel: "Weight (g)",
+                            xLabel: "Day",
+                            xDomain: 1...60
                         )
                     }
 
